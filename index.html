@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greek Word Numerology</title>
+</head>
+<body>
+  <h1>Greek Word Numerology Calculator</h1>
+
+  <label for="wordInput">Enter Greek Word:</label>
+  <input type="text" id="wordInput" placeholder="e.g., ΑΒΟΛΕΣ" />
+  <button onclick="calculate()">Calculate</button>
+
+  <div id="results" style="margin-top: 20px;"></div>
+
+  <script>
+    const alphabet_dict = {
+      "Α":1, "Β":2, "Γ":3, "Δ":4, "Ε":5, "Ζ":6, "Η":7, "Θ":8, "Ι":9,
+      "Κ":1, "Λ":2, "Μ":3, "Ν":4, "Ξ":5, "Ο":6, "Π":7, "Ρ":8, "Σ":9,
+      "Τ":1, "Υ":2, "Φ":3, "Χ":4, "Ψ":5, "Ω":6
+    };
+
+    const vowels = { "Α":1, "Ε":5, "Η":7, "Ι":9, "Ο":6, "Υ":2, "Ω":6 };
+
+    const consonants = {
+      "Β":2, "Γ":3, "Δ":4, "Ζ":6, "Θ":8, "Κ":1, "Λ":2, "Μ":3, "Ν":4,
+      "Ξ":5, "Π":7, "Ρ":8, "Σ":9, "Τ":1, "Φ":3, "Χ":4, "Ψ":5
+    };
+
+    function reduceToSingleDigit(n) {
+      while (n >= 10) {
+        n = n.toString().split('').reduce((a, b) => a + parseInt(b), 0);
+      }
+      return n;
+    }
+
+    function calculateWordValue(word, table) {
+      let total = 0;
+      for (const char of word) {
+        if (table[char]) {
+          total += table[char];
+        }
+      }
+      return reduceToSingleDigit(total);
+    }
+
+    function calculate() {
+      const word = document.getElementById("wordInput").value.toUpperCase().trim();
+
+      if (!word) {
+        document.getElementById("results").innerHTML = "<p>Please enter a Greek word.</p>";
+        return;
+      }
+
+      const wordNumber = calculateWordValue(word, alphabet_dict);
+      const vowelNumber = calculateWordValue(word, vowels);
+      const consonantNumber = calculateWordValue(word, consonants);
+
+      document.getElementById("results").innerHTML = `
+        <p><strong>Word:</strong> ${word}</p>
+        <p><strong>Word Number:</strong> ${wordNumber}</p>
+        <p><strong>Vowel Number:</strong> ${vowelNumber}</p>
+        <p><strong>Consonant Number:</strong> ${consonantNumber}</p>
+      `;
+    }
+  </script>
+</body>
+</html>
