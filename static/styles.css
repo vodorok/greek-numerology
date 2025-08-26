@@ -116,3 +116,27 @@ input:disabled {
   outline: 2px solid var(--danger);
   border-color: var(--danger) !important;
 }
+
+.hdr {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+.hdr[data-hint]:hover::after,
+.hdr[data-hint]:focus::after {
+  content: " (" attr(data-hint) ") ";
+  white-space: nowrap;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 2px;
+  padding: 2px 6px;
+  background: #222;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 20;
+}
+.th-link { text-decoration: none; color: inherit; }
+.sortdir { color: var(--muted); font-weight: normal; }

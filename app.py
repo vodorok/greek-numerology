@@ -10,6 +10,126 @@ import shutil
 
 APP_NAME = "GreekNumerology"
 
+from flask import g, make_response
+
+SUPPORTED_LANGS = ["el", "en"]
+
+TRANSLATIONS = {
+    "el": {
+        # UI
+        "app_title": "Αριθμοσοφία Ελληνικών Λέξεων — Βάση Δεδομένων",
+        "home": "Αρχική",
+        "search_placeholder": "Αναζήτηση λέξης (περιέχει)…",
+        "per_page": "Ανά σελίδα",
+        "reset_filters": "Επαναφορά φίλτρων",
+        "export_csv": "Εξαγωγή CSV",
+        "add_words_label": "Προσθήκη λέξεων (χωρισμός με κενό/κόμμα/νέα γραμμή):",
+        "add_update": "Προσθήκη / Ενημέρωση",
+        "total_results": "Σύνολο",
+        "page_showing": "Σελίδα",
+        "prev": "« Προηγούμενη",
+        "next": "Επόμενη »",
+        "actions": "Ενέργειες",
+        "delete": "Διαγραφή",
+        "delete_confirm": "Να διαγραφεί η λέξη;",
+        "lang_label": "Γλώσσα",
+        # Column labels & hints
+        "Word": "Λέξη",
+        "Phi3": "Φ₃",
+        "Phi1": "Φ₁",
+        "Sigma3": "Σ₃",
+        "Sigma1": "Σ₁",
+        "PhiSigma3": "ΦΣ₃",
+        "PhiSigma1": "ΦΣ₁",
+        "hint_vowel_total": "Σύνολο φωνηέντων",
+        "hint_vowel_reduced": "Μείωση φωνηέντων",
+        "hint_cons_total": "Σύνολο συμφώνων",
+        "hint_cons_reduced": "Μείωση συμφώνων",
+        "hint_word_total": "Σύνολο λέξης",
+        "hint_word_reduced": "Μείωση λέξης",
+        "Exact": "Ακριβές",
+        "Min": "Ελάχιστο",
+        "Max": "Μέγιστο",
+        "hint_exact": "Ακριβής τιμή",
+        "hint_min": "Ελάχιστη τιμή",
+        "hint_max": "Μέγιστη τιμή",
+    },
+    "en": {
+        "app_title": "Greek Word Numerology — DB",
+        "home": "Home",
+        "search_placeholder": "Search word (contains)…",
+        "per_page": "Per page",
+        "reset_filters": "Reset filters",
+        "export_csv": "Export CSV",
+        "add_words_label": "Add words (space/comma/newline-separated):",
+        "add_update": "Add / Update",
+        "total_results": "Total",
+        "page_showing": "Page",
+        "prev": "« Prev",
+        "next": "Next »",
+        "actions": "Actions",
+        "delete": "Delete",
+        "delete_confirm": "Delete this word?",
+        "lang_label": "Language",
+        # Column labels & hints
+        "Word": "Word",
+        "Phi3": "Φ₃",
+        "Phi1": "Φ₁",
+        "Sigma3": "Σ₃",
+        "Sigma1": "Σ₁",
+        "PhiSigma3": "ΦΣ₃",
+        "PhiSigma1": "ΦΣ₁",
+        "hint_vowel_total": "Vowel Total",
+        "hint_vowel_reduced": "Vowel Reduced",
+        "hint_cons_total": "Consonant Total",
+        "hint_cons_reduced": "Consonant Reduced",
+        "hint_word_total": "Word Total",
+        "hint_word_reduced": "Word Reduced",
+        "Exact": "Exact",
+        "Min": "Min",
+        "Max": "Max",
+        "hint_exact": "Exact value",
+        "hint_min": "Minimum value",
+        "hint_max": "Maximum value",
+    },
+}
+
+
+# Column config used by templates and validation
+COLUMNS = [
+    {"key": "word", "label": "Word", "hint": ""},
+    {"key": "n1",   "label": "Φ₃",  "hint": "Vowel Total"},
+    {"key": "n2",   "label": "Φ₁",  "hint": "Vowel Reduced"},
+    {"key": "n3",   "label": "Σ₃",  "hint": "Consonant Total"},
+    {"key": "n4",   "label": "Σ₁",  "hint": "Consonant Reduced"},
+    {"key": "n5",   "label": "ΦΣ₃", "hint": "Word Total"},
+    {"key": "n6",   "label": "ΦΣ₁", "hint": "Word Reduced"},
+]
+NUMERIC_KEYS = [c["key"] for c in COLUMNS if c["key"] != "word"]
+
+def get_lang():
+    # URL ?lang=… overrides cookie; default Greek.
+    lang = (request.args.get("lang") or request.cookies.get("lang") or "el").lower()
+    if lang not in SUPPORTED_LANGS:
+        lang = "el"
+    return lang
+
+def t(key):
+    lang = getattr(g, "lang", "el")
+    return TRANSLATIONS.get(lang, {}).get(key, TRANSLATIONS["el"].get(key, key))
+
+def build_columns(lang):
+    # Labels are symbols; hints are localized
+    return [
+        {"key": "word", "label": t("Word"), "hint": ""},
+        {"key": "n1",   "label": t("Phi3"),      "hint": t("hint_vowel_total")},
+        {"key": "n2",   "label": t("Phi1"),      "hint": t("hint_vowel_reduced")},
+        {"key": "n3",   "label": t("Sigma3"),    "hint": t("hint_cons_total")},
+        {"key": "n4",   "label": t("Sigma1"),    "hint": t("hint_cons_reduced")},
+        {"key": "n5",   "label": t("PhiSigma3"), "hint": t("hint_word_total")},
+        {"key": "n6",   "label": t("PhiSigma1"), "hint": t("hint_word_reduced")},
+    ]
+
 def _resource_base():
     # When frozen by PyInstaller, data lives in _MEIPASS
     return getattr(sys, "_MEIPASS", os.path.dirname(__file__))
@@ -145,6 +265,26 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
     init_app(app)
 
+    @app.before_request
+    def _set_lang():
+        g.lang = get_lang()
+
+    @app.context_processor
+    def inject_i18n():
+        # Make t(), lang, columns available in all templates
+        cols = build_columns(getattr(g, "lang", "el"))
+        return {"t": t, "lang": getattr(g, "lang", "el"), "columns": cols, "SUPPORTED_LANGS": SUPPORTED_LANGS}
+
+    @app.post("/set-lang")
+    def set_lang():
+        # Form posts selected language; redirect back
+        target = request.form.get("lang", "el")
+        if target not in SUPPORTED_LANGS:
+            target = "el"
+        resp = make_response(redirect(request.referrer or url_for("index")))
+        resp.set_cookie("lang", target, max_age=60*60*24*365, samesite="Lax")
+        return resp
+
     @app.route("/", methods=["GET"])
     def index():
         # ---- pagination (safe parsing) ----
@@ -169,7 +309,11 @@ def create_app():
         total = db.execute(f"SELECT COUNT(*) FROM words{where}", params).fetchone()[0]
 
         # ---- sorting ----
+        valid_sort = set(c["key"] for c in COLUMNS)
         sort = request.args.get("sort", "word")
+        if sort not in valid_sort:
+            sort = "word"
+
         direction = request.args.get("dir", "asc").lower()
         if sort not in {"word","n1","n2","n3","n4","n5","n6"}:
             sort = "word"
@@ -190,16 +334,27 @@ def create_app():
         if request.args.get("ajax") == "1":
             return render_template(
                 "_table.html",
-                rows=rows, total=total, page=page, per_page=per_page,
-                sort=sort, direction=direction, args=request.args
+                rows=rows,
+                total=total,
+                page=page,
+                per_page=per_page,
+                sort=sort,
+                direction=direction,
+                args=request.args,
             )
+
 
         # ---- full page ----
         return render_template(
             "index.html",
-            rows=rows, total=total, page=page, per_page=per_page,
-            sort=sort, direction=direction, args=request.args
-        )
+            rows=rows,
+            total=total,
+            page=page,
+            per_page=per_page,
+            sort=sort,
+            direction=direction,
+            args=request.args,
+            )
 
 
     @app.post("/add")
@@ -247,7 +402,16 @@ def create_app():
         writer = csv.writer(si)
         writer.writerow(["word","n1","n2","n3","n4","n5","n6"])
         for r in rows:
-            writer.writerow([r["word"], r["n1"], r["n2"], r["n3"], r["n4"], r["n5"], r["n6"]])
+            headers = [
+                f"{t('Word')}",
+                f"{t('Phi3')} ({t('hint_vowel_total')})",
+                f"{t('Phi1')} ({t('hint_vowel_reduced')})",
+                f"{t('Sigma3')} ({t('hint_cons_total')})",
+                f"{t('Sigma1')} ({t('hint_cons_reduced')})",
+                f"{t('PhiSigma3')} ({t('hint_word_total')})",
+                f"{t('PhiSigma1')} ({t('hint_word_reduced')})",
+            ]
+            writer.writerow(headers)
         mem = io.BytesIO(si.getvalue().encode("utf-8"))
         mem.seek(0)
         return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="export.csv")

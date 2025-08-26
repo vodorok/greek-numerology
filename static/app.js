@@ -501,7 +501,8 @@
       e.preventDefault();
       const id = btn.dataset.id;
       if (!id) return;
-      if (!confirm("Delete this word?")) return;
+      const msg = document.body.getAttribute("data-confirm-delete") || "Delete this word?";
+      if (!confirm(msg)) return;
       const res = await fetch(`/delete/${id}`, { method: "POST" });
       if (res.ok) {
         const tr = btn.closest("tr");

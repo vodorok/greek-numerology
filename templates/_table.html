@@ -1,23 +1,28 @@
 <section class="results">
     <div class="table-tools">
-      <div>Total: {{ total }} results</div>
-      <div>Page {{ page }} — showing up to {{ per_page }} rows</div>
+        <div>{{ t('total_results') }}: {{ total }}</div>
+        <div>{{ t('page_showing') }} {{ page }} — {{ per_page }}</div>
     </div>
   
     <table>
-      <thead>
+    <thead>
         <tr>
-          {% set next_dir = 'desc' if direction == 'asc' else 'asc' %}
-          {% for col in ['word','n1','n2','n3','n4','n5','n6'] %}
+            {% set next_dir = 'desc' if direction == 'asc' else 'asc' %}
+            {% for col in columns %}
             <th>
-              <a href="{{ current_url(sort=col, dir=(next_dir if sort==col else 'asc')) }}"
-                 data-sort-link>
-                {{ col|upper }}
-                {% if sort == col %} ({{ direction }}){% endif %}
-              </a>
+                <a href="{{ current_url(sort=col.key, dir=(next_dir if sort==col.key else 'asc')) }}"
+                    data-sort-link
+                    class="th-link">
+                {% if col.hint %}
+                    <span class="hdr" aria-label="{{ col.hint }}" data-hint="{{ col.hint }}">{{ col.label }}</span>
+                {% else %}
+                    <span class="hdr">{{ col.label }}</span>
+                {% endif %}
+                {% if sort == col.key %}<span class="sortdir">({{ direction }})</span>{% endif %}
+                </a>
             </th>
-          {% endfor %}
-          <th>Actions</th>
+            {% endfor %}
+            <th>{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -30,18 +35,19 @@
             <td>{{ r['n4'] }}</td>
             <td>{{ r['n5'] }}</td>
             <td>{{ r['n6'] }}</td>
-            <td><button class="danger delete-btn" data-id="{{ r['id'] }}">Delete</button></td>
+            <td><button class="danger delete-btn" data-id="{{ r['id'] }}">{{ t('delete') }}</button></td>
           </tr>
         {% endfor %}
       </tbody>
+      
     </table>
   
     <div class="pagination">
       {% if page > 1 %}
-        <a class="button" href="{{ current_url(page=page-1) }}" data-page-link>« Prev</a>
+        <a class="button" href="{{ current_url(page=page-1) }}" data-page-link>{{ t('prev') }}</a>
       {% endif %}
       {% if page * per_page < total %}
-        <a class="button" href="{{ current_url(page=page+1) }}" data-page-link>Next »</a>
+        <a class="button" href="{{ current_url(page=page+1) }}" data-page-link>{{ t('next') }}</a>
       {% endif %}
     </div>
   </section>

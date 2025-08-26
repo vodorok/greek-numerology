@@ -5,18 +5,16 @@
   <form id="filter-form" method="get" data-live-filter>
     <div style="margin-bottom:10px">
       <div class="input-with-clear" style="display:inline-block; vertical-align:middle;">
-        <input type="text" name="q" value="{{ args.get('q','') }}" placeholder="Search word (contains)…" />
+        <input type="text" name="q" value="{{ args.get('q','') }}" placeholder="{{ t('search_placeholder') }}" />
         <button type="button" class="clear-btn" data-target="q" aria-label="Clear search">×</button>
       </div>
     
-      <label style="margin-left:8px">Per page:
-        <input type="number" inputmode="numeric" pattern="\d*" name="per_page" min="10" max="500" value="{{ per_page }}">
+      <label style="margin-left:8px">{{ t('per_page') }}:
+        <input type="number" name="per_page" min="10" max="500" value="{{ per_page }}">
       </label>
-    
       <!-- Single consolidated reset -->
-      <button type="button" class="button secondary" id="reset-btn" title="Reset all filters to default">Reset filters</button>
-
-      <a class="button" href="{{ export_url() }}" id="export-btn">Export CSV</a>
+      <button type="button" class="button secondary" id="reset-btn" title="{{ t('reset_filters') }}">{{ t('reset_filters') }}</button>
+      <!--a class="button" href="{{ export_url() }}" id="export-btn">Export CSV</a-->
     </div>
     
 
@@ -24,36 +22,51 @@
       <thead>
         <tr>
           <th></th>
-          <th>Exact</th>
-          <th>Min</th>
-          <th>Max</th>
+          <th>
+            <span class="hdr" data-hint="{{ t('hint_exact') }}">{{ t('Exact') }}</span>
+          </th>
+          <th>
+            <span class="hdr" data-hint="{{ t('hint_min') }}">{{ t('Min') }}</span>
+          </th>
+          <th>
+            <span class="hdr" data-hint="{{ t('hint_max') }}">{{ t('Max') }}</span>
+          </th>
         </tr>
       </thead>
       <tbody>
-        {% for i in range(1,7) %}
+        {# skip the first element (word) #}
+        {% for col in columns[1:] %}
+        {% set key = col.key %}{% set i = key[1:] %} {# 'n1' -> '1' #}
         <tr>
-          <td><strong>n{{ i }}</strong></td>
+          <td>
+            {% if col.hint %}
+              <span class="hdr" aria-label="{{ col.hint }}" data-hint="{{ col.hint }}">{{ col.label }}</span>
+            {% else %}
+              <span class="hdr">{{ col.label }}</span>
+            {% endif %}
+          </td>
           <td class="cell-input">
             <div class="input-with-clear">
-              <input type="number" inputmode="numeric" pattern="\d*" name="n{{ i }}" min="0" max="999999" value="{{ args.get('n%s' % i, '') }}">
-              <button type="button" class="clear-btn" data-target="n{{ i }}" aria-label="Clear n{{ i }} exact">×</button>
+              <input type="number" step="1" inputmode="numeric" pattern="\d*" name="n{{ i }}" min="0" max="999999" value="{{ args.get('n%s' % i, '') }}">
+              <button type="button" class="clear-btn hidden" data-target="n{{ i }}" aria-label="Clear n{{ i }} exact">×</button>
             </div>
           </td>
           <td class="cell-input">
             <div class="input-with-clear">
-              <input type="number" inputmode="numeric" pattern="\d*" name="n{{ i }}_min" min="0" max="999999" value="{{ args.get('n%s_min' % i, '') }}">
-              <button type="button" class="clear-btn" data-target="n{{ i }}_min" aria-label="Clear n{{ i }} min">×</button>
+              <input type="number" step="1" inputmode="numeric" pattern="\d*" name="n{{ i }}_min" min="0" max="999999" value="{{ args.get('n%s_min' % i, '') }}">
+              <button type="button" class="clear-btn hidden" data-target="n{{ i }}_min" aria-label="Clear n{{ i }} min">×</button>
             </div>
           </td>
           <td class="cell-input">
             <div class="input-with-clear">
-              <input type="number" inputmode="numeric" pattern="\d*" name="n{{ i }}_max" min="0" max="999999" value="{{ args.get('n%s_max' % i, '') }}">
-              <button type="button" class="clear-btn" data-target="n{{ i }}_max" aria-label="Clear n{{ i }} max">×</button>
+              <input type="number" step="1" inputmode="numeric" pattern="\d*" name="n{{ i }}_max" min="0" max="999999" value="{{ args.get('n%s_max' % i, '') }}">
+              <button type="button" class="clear-btn hidden" data-target="n{{ i }}_max" aria-label="Clear n{{ i }} max">×</button>
             </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
+      
     </table>
     <div id="validation" class="validation-box" aria-live="polite">
       <strong>Check your filters:</strong>
@@ -64,9 +77,9 @@
 
 <section class="add">
   <form method="post" action="{{ add_url() }}">
-    <label for="words">Add words (space/comma/newline-separated):</label><br>
+    <label for="words">{{ t('add_words_label') }}</label><br>
     <textarea name="words" id="words" rows="3" placeholder="π.χ. ΑΒΟΛΕΣ ΚΑΛΗ ΗΜΕΡΑ"></textarea><br>
-    <button type="submit">Add / Update</button>
+    <button type="submit">{{ t('add_update') }}</button>
   </form>
 </section>
 
