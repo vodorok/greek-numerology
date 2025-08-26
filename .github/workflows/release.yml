@@ -1,0 +1,118 @@
+name: Build (nightly) & Release (tags)
+
+on:
+  push:
+    branches: ['**']      # build on every commit to any branch (nightly)
+    tags: ['v*']          # also triggers when pushing a version tag
+  workflow_dispatch: {}   # allow manual runs
+
+env:
+  APP_NAME: GreekNumerology
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements.txt) {
+            pip install -r requirements.txt
+          } else {
+            pip install flask waitress pyinstaller
+          }
+
+      - name: Compute artifact suffix (tag vs nightly)
+        id: meta
+        shell: pwsh
+        run: |
+          $isTag = "${{ startsWith(github.ref, 'refs/tags/') }}"
+          if ($isTag -eq "true") {
+            $suffix = "${{ github.ref_name }}"
+          } else {
+            $short = "${{ github.sha }}".Substring(0,7)
+            $date  = (Get-Date -Format "yyyyMMdd")
+            $suffix = "nightly-$date-$short"
+          }
+          echo "suffix=$suffix" >> $env:GITHUB_OUTPUT
+
+      - name: List seed assets (optional)
+        shell: pwsh
+        run: |
+          if (Test-Path templates) { Get-ChildItem -Recurse templates | Out-String | Write-Host }
+          if (Test-Path static)    { Get-ChildItem -Recurse static    | Out-String | Write-Host }
+          if (Test-Path schema.sql){ Get-Item schema.sql | Out-String | Write-Host }
+          if (Test-Path numerology.py){ Get-Item numerology.py | Out-String | Write-Host }
+          if (Test-Path data.db)   { Write-Host "Bundling seed data.db" } else { Write-Host "No seed data.db (ok)" }
+
+      - name: Build executable with PyInstaller
+        shell: pwsh
+        run: >
+          pyinstaller --noconsole --onefile
+          --name $env:APP_NAME
+          --add-data "templates;templates"
+          --add-data "static;static"
+          --add-data "schema.sql;."
+          --add-data "numerology.py;."
+          --add-data "data.db;."
+          app.py
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist_zip | Out-Null
+          Copy-Item -Path "dist/${{ env.APP_NAME }}.exe" -Destination dist_zip/
+          if (Test-Path LICENSE)   { Copy-Item LICENSE   dist_zip/ }
+          if (Test-Path README.md) { Copy-Item README.md dist_zip/ }
+          $zip = "${{ env.APP_NAME }}-${{ steps.meta.outputs.suffix }}-win64.zip"
+          Compress-Archive -Path dist_zip/* -DestinationPath $zip
+
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ steps.meta.outputs.suffix }}-win64
+          path: |
+            dist/${{ env.APP_NAME }}.exe
+            ${{ env.APP_NAME }}-${{ steps.meta.outputs.suffix }}-win64.zip
+          if-no-files-found: error
+
+  release-win:
+    # Only run this job for version tags (v*)
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    needs: build-win
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ github.ref_name }}-win64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Windows build for ${{ github.ref_name }}.
+
+            - Single-file EXE (`${{ env.APP_NAME }}.exe`)
+            - Zip package (includes README/LICENSE if present)
+            - If included, a seed `data.db` is copied to `%LOCALAPPDATA%\${{ env.APP_NAME }}` on first run
+          files: |
+            ${{ env.APP_NAME }}.exe
+            ${{ env.APP_NAME }}-${{ github.ref_name }}-win64.zip
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}

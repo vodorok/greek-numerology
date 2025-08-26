@@ -1,0 +1,22 @@
+-- SQLite schema for words table
+PRAGMA journal_mode=WAL;
+
+CREATE TABLE IF NOT EXISTS words (
+  id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  word TEXT NOT NULL UNIQUE,
+  n1   INTEGER NOT NULL,
+  n2   INTEGER NOT NULL,
+  n3   INTEGER NOT NULL,
+  n4   INTEGER NOT NULL,
+  n5   INTEGER NOT NULL,
+  n6   INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_words_word ON words(word);
+CREATE INDEX IF NOT EXISTS idx_words_n1 ON words(n1);
+CREATE INDEX IF NOT EXISTS idx_words_n2 ON words(n2);
+CREATE INDEX IF NOT EXISTS idx_words_n3 ON words(n3);
+CREATE INDEX IF NOT EXISTS idx_words_n4 ON words(n4);
+CREATE INDEX IF NOT EXISTS idx_words_n5 ON words(n5);
+CREATE INDEX IF NOT EXISTS idx_words_n6 ON words(n6);
